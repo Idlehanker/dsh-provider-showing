@@ -24,15 +24,48 @@ WorkBuddy · deepseek-v4.1-flash  high
 
 ## 安装
 
+直接从 GitHub 装，不需要构建，也不需要本地路径：
+
 ```sh
-pnpm --dir ~/.dsh/profiles/web add /绝对路径/dsh-provider-showing-1.1.0.tgz
+dsh plugin --profile web add github:Idlehanker/dsh-provider-showing
+```
+
+然后重启，让客户端 bundle 重新组装：
+
+```sh
 kill -TERM "$(cat ~/.dsh/daemon/.dsh-web.pid)"   # 守护进程会自动拉起
 ```
 
-包内自带 `cordis.patch.yml`，会自行插入 Loader 行，**不需要手改 profile**。
+`dsh plugin` 只是把参数原样转发给 pnpm，所以下面这条等价：
 
-一个容易踩的坑：`pnpm --dir <目标目录>` 会把相对 `file:` 路径解析到**目标目录**，
-不是你 shell 的 cwd。请传绝对路径。
+```sh
+pnpm --dir ~/.dsh/profiles/web add github:Idlehanker/dsh-provider-showing
+```
+
+构建产物 `lib/` 已提交进仓库，所以 git 安装不需要任何工具链。想锁定版本而不是跟踪
+`main`，加上 tag：
+
+```sh
+pnpm --dir ~/.dsh/profiles/web add github:Idlehanker/dsh-provider-showing#v1.2.0
+```
+
+### 如果 git clone 卡住
+
+pnpm 解析 `github:` 走的是 **git**，不是 registry。如果你的机器把 GitHub 地址重写到
+某个镜像（`~/.gitconfig` 里的 `insteadOf` 规则很常见），而那个镜像不可达，安装会**卡住**
+而不是报错。先查：
+
+```sh
+git config --global --get-regexp "url\..*insteadof"
+```
+
+镜像返回 403 就是症状。要么修镜像地址，要么安装时临时去掉规则、装完再放回去。
+
+### 卸载
+
+```sh
+dsh plugin --profile web remove dsh-provider-showing
+```
 
 ## 设计取舍
 

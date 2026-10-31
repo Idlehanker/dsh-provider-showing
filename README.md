@@ -29,15 +29,50 @@ report should quote.
 
 ## Install
 
+Install straight from GitHub — no build step, no local path:
+
 ```sh
-pnpm --dir ~/.dsh/profiles/web add /absolute/path/to/dsh-provider-showing-1.1.0.tgz
+dsh plugin --profile web add github:Idlehanker/dsh-provider-showing
+```
+
+Then restart so the client bundle is composed:
+
+```sh
 kill -TERM "$(cat ~/.dsh/daemon/.dsh-web.pid)"   # the supervisor relaunches it
 ```
 
-The bundle carries its own `cordis.patch.yml`, so it inserts its Loader row and
-needs no hand edit of the profile. One caveat worth knowing: `pnpm --dir <target>`
-resolves a relative `file:` path against **the target directory**, not your
-shell's cwd — pass an absolute path.
+`pnpm` is what actually runs; `dsh plugin` forwards its arguments verbatim. The
+equivalent direct form:
+
+```sh
+pnpm --dir ~/.dsh/profiles/web add github:Idlehanker/dsh-provider-showing
+```
+
+The bundle is committed under `lib/`, so a git install needs no toolchain. To pin
+a release instead of tracking `main`, append the tag:
+
+```sh
+pnpm --dir ~/.dsh/profiles/web add github:Idlehanker/dsh-provider-showing#v1.2.0
+```
+
+### If the git clone hangs
+
+pnpm resolves a `github:` spec through **git**, not the registry. If your machine
+rewrites GitHub URLs to a mirror — a common `insteadOf` rule in `~/.gitconfig` —
+and that mirror is unreachable, the install stalls instead of failing. Check:
+
+```sh
+git config --global --get-regexp "url\..*insteadof"
+```
+
+A 403 from the mirror is the tell. Either fix the mirror URL or bypass it for the
+install by removing the rule, running the command, and putting it back.
+
+### Removing it
+
+```sh
+dsh plugin --profile web remove dsh-provider-showing
+```
 
 ## Design notes
 
