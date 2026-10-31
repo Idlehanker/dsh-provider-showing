@@ -1,5 +1,7 @@
 # dsh-provider-showing
 
+English | [简体中文](README.zh.md)
+
 Show **which LLM provider the current session is running on** — in the composer
 toolbar, always visible, in words.
 
