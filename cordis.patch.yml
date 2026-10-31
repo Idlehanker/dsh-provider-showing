@@ -1,0 +1,15 @@
+# ============================================================================
+# dsh-provider-showing — DSH bundle patch
+# ============================================================================
+# Mount declaration. DSH layers each bundle's patch onto the Web profile's
+# config tree at startup; this file inserts one Loader row so the package's
+# dual-face (host + client) entry is composed.
+#
+# The HOST half is intentionally empty: this plugin contributes nothing to the
+# Host. It exists only because a client half is served for packages that hold a
+# Loader row.
+# ============================================================================
+
+- insert:
+    - id: dsh-provider-showing
+      name: dsh-provider-showing

@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Typecheck. The build is the artifact the Host composes, so a type error
+      # that survives to `lib/` is a runtime failure in someone's browser.
+      - run: pnpm typecheck
+
+      # Build, then assert the dual-face contract this plugin must satisfy.
+      # These are not stylistic checks: each one corresponds to a way the
+      # bundle silently fails to activate in the Host's module loader.
+      - run: pnpm build
+      - name: verify client bundle contract
+        run: |
+          set -e
+          f=lib/client.js
+          test -f "$f" || { echo "missing $f"; exit 1; }
+
+          # 1. The Host's loader is a lazy CJS table; the bundle must REGISTER a
+          #    factory, never execute react at parse time.
+          grep -q "__ModuleLoader__" "$f" || { echo "no __ModuleLoader__ registration"; exit 1; }
+
+          # 2. A top-level `import` is an unresolvable bare specifier in the
+          #    browser (no import map), so the entry never materializes.
+          if grep -q '^import ' "$f"; then echo "top-level import present"; exit 1; fi
+
+          # 3. The id must be the PACKAGE name: the boot graph is keyed by it.
+          grep -q 'id: "dsh-provider-showing"' "$f" || { echo "wrong registration id"; exit 1; }
+
+          # 4. React must arrive through the factory's require, sharing the
+          #    shell's single instance (a second copy breaks hooks).
+          grep -q 'require("react")' "$f" || { echo "react not bound via factory require"; exit 1; }
+
+      - name: verify host bundle
+        run: |
+          set -e
+          test -f lib/index.js || { echo "missing lib/index.js"; exit 1; }

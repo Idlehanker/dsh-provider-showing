@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output (rebuilt from src; committed only for npm consumers)
+dist/
+
+# Package tarballs produced by `npm pack`
+*.tgz
+
+# Local caches
+.npm-cache/
+
+# Editor / OS noise
+.DS_Store
+*.log
