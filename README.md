@@ -79,22 +79,40 @@ registration rather than guessed:
 
 Adding a route costs one line.
 
-## Adjusting the conversation width
+## Conversation width — now in Settings
 
-Not this plugin's job — **the Host already ships it.** Drag the vertical edge
-inside either side of the transcript column: the cursor turns to `col-resize` and
-the width persists in `localStorage` under `dsh.conversation.contentWidth`
-(clamped to a 640 px floor). The handles appear only while a conversation is
-active, and are hidden while a composer overlay is open.
+**Settings -> General -> Conversation width.** Type a pixel width, nudge it with
+`-` / `+`, or hit **Reset** to return to automatic sizing.
 
-To set it without dragging, from the browser console:
+This complements the Host's own drag handles rather than replacing them: you can
+still drag the inner edge of either side of the transcript. The row adds the two
+things a 10 px drag target cannot give you — a number you can type, and a reset
+that is a button.
 
-```js
-localStorage.setItem('dsh.conversation.contentWidth', '1040')
-```
+It writes the Host's own key, `localStorage['dsh.conversation.contentWidth']`,
+which is the same one the drag handles persist to. Both controls therefore agree,
+and neither owns a private setting.
 
-...then reload. Remove the key to return to the automatic width
-(`clamp(680px, 64% of the column, 920px)`).
+### Scope, stated honestly
+
+The width preference is **not Host state**: `ConversationWidthControls` reads
+and writes localStorage directly, publishes it as `--dsh-chat-user-width`, and has no
+store, no subscription and no exposed setter. The mount is a factory slot that a
+settings row cannot reach, and `settings.general.item` owners receive no props at
+all. Writing the key is the whole contract available.
+
+Two consequences worth knowing:
+
+- **A change lands after a reload.** Nothing is listening for the key, so the
+  new value is picked up on the next publish pass. The row says so in its copy
+  instead of pretending otherwise.
+- **The row does not clamp to your live column.** The Host clamps on read
+  (`columnWidth - 176`, floor 640 px), which needs the mounted container and is
+  unknowable from Settings. A too-large value is corrected there rather than
+  silently rewritten here. The input only rails against obvious typos.
+
+Prefer the console? `localStorage.setItem('dsh.conversation.contentWidth', '1040')`
+works exactly the same and needs no plugin.
 
 ## How the bundle is built
 

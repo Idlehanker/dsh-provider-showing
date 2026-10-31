@@ -1,6 +1,6 @@
 {
   "name": "dsh-provider-showing",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Show which LLM provider the current DSH session is using, in the composer toolbar — provider first, model second. Useful when several provider plugins are installed.",
   "type": "module",
   "license": "MIT",

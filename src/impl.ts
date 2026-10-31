@@ -35,6 +35,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import { SettingsWidthRow, bindSettingsReact, ensureSettingsCss, formatCopy, widthCopyFor } from './settings-width.ts'
 
 /**
  * React is bound lazily, never imported at module scope.
@@ -53,6 +54,9 @@ let useMemo: ReactApi['useMemo']
 export function bindReact(react: ReactApi): void {
   createElement = react.createElement
   useMemo = react.useMemo
+  // The Settings row needs useState as well; binding both here keeps one
+  // entry point for "the shell's React arrived".
+  bindSettingsReact(react)
 }
 
 /**
@@ -89,6 +93,15 @@ export const inject = ['slots']
 
 /** The composer row's trailing list seat: rendered before the model picker. */
 const SLOT = 'conversation.input.right'
+
+/**
+ * The Settings -> General row seat.
+ *
+ * Declared by ui-settings-general's General entry, so it exists only while that
+ * page is mounted -- `ctx.slots.inject` queues the registration until then
+ * rather than losing it.
+ */
+const SETTINGS_ITEM = 'settings.general.item'
 
 /** Position among the row's occupants; lower is further left. */
 const ORDER = 2
@@ -283,6 +296,25 @@ function ProviderReadout(props: ReadoutProps): unknown {
   )
 }
 
+/**
+ * The row as the settings slot renders it.
+ *
+ * The slot hands an item only its own props (no `label`, no locale face), so
+ * the copy lookup is built here: pick the table by the document language and
+ * close over it. Reading `document.documentElement.lang` rather than a locale
+ * service keeps this to zero extra dependencies for one row -- and a locale
+ * switch re-renders the page anyway, which re-runs this.
+ */
+function SettingsWidthSlotRow(): unknown {
+  const copy = widthCopyFor(typeof document === 'undefined' ? undefined : document.documentElement.lang)
+  const t = (key: string, vars?: Record<string, unknown>): string => {
+    const template = copy[key]
+    if (template === undefined) return key
+    return vars === undefined ? template : formatCopy(template, vars)
+  }
+  return SettingsWidthRow({ t })
+}
+
 /** Register the readout into the composer row. */
 export function apply(ctx: PluginContext): void {
   ensureCss()
@@ -303,5 +335,28 @@ export function apply(ctx: PluginContext): void {
     // A failed slot registration must not take the page down: the composer is
     // the Host's, and losing one readout is recoverable by reloading.
     console.error('[dsh-provider-showing] slot registration failed:', error)
+  }
+
+  // Settings -> General: the conversation-width row.
+  //
+  // A SEPARATE seat from the readout on purpose. The two contributions share
+  // nothing but this plugin's name -- one is a session-scope composer row, the
+  // other a root-scope settings row -- so a failure in either must not be able
+  // to take the other down. Hence its own try/catch rather than one guard for
+  // both.
+  ensureSettingsCss()
+  try {
+    ctx.slots.inject(SETTINGS_ITEM, () => ctx.slots.register(
+      {
+        name: SETTINGS_ITEM,
+        id: 'dsh-provider-showing-width',
+        // After Appearance (10) and the font row (11): width is a layout
+        // preference and belongs with the other visual ones, not above them.
+        order: 12,
+      },
+      SettingsWidthSlotRow,
+    ))
+  } catch (error) {
+    console.error('[dsh-provider-showing] settings row registration failed:', error)
   }
 }
